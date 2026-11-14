@@ -16,6 +16,7 @@ Dokumentation der aus dem MeineSchule.digital-Android-Client
 - [Realtime und Push](docs/realtime-and-push.md)
 - [Datenmodelle](docs/data-models.md)
 - [Sicherheitsbetrachtung](docs/security.md)
+- [Einzeldatei-HTML-Beispielclient](examples/msd-client.html)
 
 ## Umfang
 
@@ -28,3 +29,7 @@ Server jede Route, Funktion oder Berechtigung freischaltet.
 Es wurden keine Server angesprochen. Die Dokumentation enthält keine
 Zugangsdaten oder Echtdaten und ist nicht als Anleitung für Zugriffe auf
 fremde Konten oder Schulinstanzen gedacht. Siehe [Sicherheitsbetrachtung](docs/security.md).
+Das HTML-Beispiel umfasst Chatliste, Nachrichten und Chat-Erstellung sowie
+Kalender- und Home.InfoPoint/Notenbuch-Ansichten. Es ist ein unbestätigter
+Client-Prototyp und setzt eine autorisierte Instanz, gültige App-ID und
+gegebenenfalls passende CORS-Freigaben voraus.
