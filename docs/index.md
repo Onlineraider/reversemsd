@@ -14,6 +14,7 @@
 | [Realtime und Push](realtime-and-push.md) | SignalR-Hub und Push-Installationen |
 | [Datenmodelle](data-models.md) | In der Spezifikation sichtbare Felder und Modellbeziehungen |
 | [Sicherheitsbetrachtung](security.md) | Statische Client-Befunde, Schutzmaßnahmen und offene Prüfbereiche |
+| [Einzeldatei-HTML-Beispielclient](../examples/msd-client.html) | Browserclient für Anmeldung, Chat-Erstellung, Kalender und Home.InfoPoint |
 
 ## Lesen der Routenreferenz
 
@@ -34,3 +35,9 @@ Die API kann abhängig von Schulkonfiguration und Benutzerrechten anders
 reagieren. Fähigkeiten und Flags in Antworten sind keine
 Autorisierungsnachweise. Serverseitige Berechtigungsprüfungen sind maßgeblich.
 Siehe [Konventionen](conventions.md) und [Sicherheitsbetrachtung](security.md).
+
+Das [HTML-Beispiel](../examples/msd-client.html) ist nicht gegen einen Server
+verifiziert. Es benötigt eine für die Instanz gültige App-ID; bei Aufruf als
+lokale Datei oder von einem anderen Host kann die Browser-CORS-Policy die
+Anfragen verhindern. HIP-Inhalte werden als HTML-Fragmente geliefert und
+deshalb im Beispiel vor der Anzeige auf erlaubte Elemente reduziert.
