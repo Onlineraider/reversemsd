@@ -1,1 +1,755 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>ReverseMSD – MSD-Client-Beispiel</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font: 16px/1.5 system-ui, sans-serif;
+      background: #f3f5f8;
+      color: #172033;
+    }
 
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header, main { width: min(1100px, calc(100% - 2rem)); margin: 0 auto; }
+    header { padding: 2rem 0 1rem; }
+    main { padding-bottom: 3rem; }
+    h1 { margin: 0; font-size: 1.7rem; }
+    h2 { margin-top: 0; font-size: 1.2rem; }
+    p { margin: .4rem 0 1rem; }
+    .muted, small { color: #536078; }
+    .notice { border-left: 4px solid #d59b16; padding: .8rem 1rem; background: #fff8df; }
+    .status { min-height: 1.5rem; margin: .8rem 0; }
+    .error { color: #a32121; }
+    .success { color: #17613c; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; }
+    .panel { background: white; border: 1px solid #d8deea; border-radius: .6rem; padding: 1rem; margin: 1rem 0; }
+    label { display: block; font-weight: 600; margin: .7rem 0 .25rem; }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea { width: 100%; padding: .55rem .65rem; border: 1px solid #9aa6ba; border-radius: .35rem; background: white; }
+    button { border: 0; border-radius: .35rem; background: #174ea6; color: white; padding: .55rem .85rem; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    button.secondary { background: #e6ebf4; color: #172033; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+    .row > * { flex: 1 1 180px; }
+    .chat-list { display: grid; gap: .5rem; max-height: 30rem; overflow: auto; }
+    .chat-button { text-align: left; background: #edf2fb; color: #172033; border: 1px solid #d8deea; }
+    .chat-button[aria-current="true"] { border-color: #174ea6; box-shadow: inset 3px 0 #174ea6; }
+    .content-list { display: grid; gap: .5rem; max-height: 25rem; overflow: auto; }
+    .recipient-select { min-height: 9rem; }
+    .messages { display: grid; gap: .65rem; max-height: 55vh; overflow: auto; padding: .25rem; }
+    .message { border: 1px solid #d8deea; border-radius: .45rem; padding: .7rem; overflow-wrap: anywhere; }
+    .message p { white-space: pre-wrap; margin: .35rem 0 0; }
+    .hip-content { overflow-wrap: anywhere; }
+    .hip-content table { border-collapse: collapse; display: block; max-width: 100%; overflow-x: auto; }
+    .hip-content th, .hip-content td { border: 1px solid #c5ccda; padding: .35rem .5rem; }
+    details { margin-top: .5rem; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 18rem; overflow: auto; background: #f3f5f8; padding: .6rem; border-radius: .3rem; }
+    .hidden { display: none !important; }
+    @media (max-width: 600px) {
+      header, main { width: min(100% - 1rem, 1100px); }
+      .messages { max-height: 45vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MSD-Client-Beispiel</h1>
+    <p class="muted">Einzelne HTML-Datei auf Basis der dokumentierten ReverseMSD-Schnittstellen.</p>
+    <p class="notice">Nur mit einem eigenen, autorisierten Testkonto und einer freigegebenen Schulinstanz verwenden. Die API-Referenz ist nicht offiziell; Endpunkte und Berechtigungen können je nach Instanz abweichen. Dein Token bleibt im Arbeitsspeicher und wird beim Neuladen verworfen.</p>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="login-heading">
+      <h2 id="login-heading">Verbindung und Anmeldung</h2>
+      <div class="grid">
+        <div>
+          <label for="origin">Instanz-Origin</label>
+          <input id="origin" type="url" placeholder="https://schule.example" autocomplete="url" required>
+        </div>
+        <div>
+          <label for="app-id">App-ID</label>
+          <input id="app-id" type="text" placeholder="Von der autorisierten MSD-Instanz" autocomplete="off" required>
+        </div>
+      </div>
+      <div class="grid">
+        <div>
+          <label for="username">Benutzername</label>
+          <input id="username" type="text" autocomplete="username" required>
+        </div>
+        <div>
+          <label for="password">Passwort</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+        </div>
+        <div>
+          <label for="two-factor">Zwei-Faktor-Code (falls angefordert)</label>
+          <input id="two-factor" type="text" inputmode="numeric" autocomplete="one-time-code">
+        </div>
+      </div>
+      <div class="row" style="margin-top: .8rem">
+        <button id="login-button" type="button">Anmelden</button>
+        <button id="logout-button" class="secondary" type="button" disabled>Abmelden</button>
+        <span id="profile" class="muted"></span>
+      </div>
+      <p class="muted">Der genaue App-ID-Wert ist in der Referenz nicht dokumentiert. Die HTML-Datei speichert weder Zugangsdaten noch Token.</p>
+    </section>
+
+    <section id="client" class="hidden">
+      <section class="panel">
+        <h2>Schule</h2>
+        <label for="school">Schulinstanz aus deinem Profil</label>
+        <select id="school" disabled></select>
+      </section>
+      <div class="grid">
+        <section class="panel">
+          <h2>Chats</h2>
+          <div class="row">
+            <button id="load-chats" class="secondary" type="button">Chatliste laden</button>
+          </div>
+          <div id="chat-list" class="chat-list" aria-live="polite"></div>
+          <details>
+            <summary>Rohdaten der Chatliste</summary>
+            <pre id="chats-raw"></pre>
+          </details>
+          <details id="create-chat">
+            <summary>Neuen Chat erstellen</summary>
+            <form id="create-chat-form">
+              <label for="chat-name">Chatname (optional)</label>
+              <input id="chat-name" type="text" maxlength="200">
+              <label for="recipient-search">Empfänger suchen</label>
+              <div class="row">
+                <input id="recipient-search" type="search" placeholder="Name oder Suchbegriff">
+                <button id="search-recipients" class="secondary" type="button">Suchen</button>
+                <button id="load-recipients" class="secondary" type="button">Empfänger laden</button>
+              </div>
+              <label for="recipients">Empfänger auswählen (Mehrfachauswahl mit Strg/Cmd)</label>
+              <select id="recipients" class="recipient-select" multiple required></select>
+              <label><input id="use-existing" type="checkbox" style="width:auto"> Vorhandenen Chat wiederverwenden</label>
+              <button id="create-chat-button" type="submit">Chat erstellen</button>
+            </form>
+          </details>
+        </section>
+        <section class="panel">
+          <h2 id="conversation-heading">Nachrichten</h2>
+          <div class="row">
+            <button id="refresh-messages" class="secondary" type="button" disabled>Aktualisieren</button>
+          </div>
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <details>
+            <summary>Rohdaten der Nachrichten</summary>
+            <pre id="messages-raw"></pre>
+          </details>
+          <form id="send-form">
+            <label for="message">Textnachricht</label>
+            <textarea id="message" rows="3" maxlength="10000" required disabled></textarea>
+            <button id="send-button" type="submit" disabled style="margin-top: .5rem">Nachricht senden</button>
+          </form>
+        </section>
+      </div>
+      <div class="grid">
+        <section class="panel">
+          <h2>Kalender</h2>
+          <button id="load-calendar" class="secondary" type="button">Kalender laden</button>
+          <div id="calendar-list" class="content-list" aria-live="polite"></div>
+          <h3 id="calendar-heading"></h3>
+          <pre id="calendar-detail"></pre>
+          <details>
+            <summary>Rohdaten des Kalenders</summary>
+            <pre id="calendar-raw"></pre>
+          </details>
+        </section>
+        <section class="panel">
+          <h2>Notenbuch / Home.InfoPoint</h2>
+          <button id="load-hip" class="secondary" type="button">Schüler laden</button>
+          <label for="hip-student">Schüler</label>
+          <select id="hip-student" disabled></select>
+          <div id="hip-content" class="hip-content"></div>
+          <details>
+            <summary>Rohdaten des Notenbuchs</summary>
+            <pre id="hip-raw"></pre>
+          </details>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    const state = {
+      origin: "",
+      appId: "",
+      token: null,
+      refreshToken: null,
+      expiresAt: 0,
+      school: "",
+      chatId: "",
+      profile: null,
+      chats: [],
+      recipients: new Map(),
+      calendarItems: [],
+      hipStudents: []
+    };
+
+    let refreshInFlight = null;
+    const byId = (id) => document.getElementById(id);
+    const status = byId("status");
+
+    function showStatus(message, kind = "") {
+      status.textContent = message;
+      status.className = `status ${kind}`;
+    }
+
+    function apiRoot() {
+      return `${state.origin}/Api/v1.0`;
+    }
+
+    function normalizeOrigin(value) {
+      let url;
+      try {
+        url = new URL(value);
+      } catch {
+        throw new Error("Bitte gib einen gültigen Instanz-Origin an.");
+      }
+      const localHttp = url.protocol === "http:" &&
+        (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]");
+      if (url.protocol !== "https:" && !localHttp) {
+        throw new Error("Für die Instanz ist HTTPS erforderlich (außer auf localhost).");
+      }
+      if (url.username || url.password || url.search || url.hash ||
+          (url.pathname !== "/" && url.pathname !== "")) {
+        throw new Error("Bitte nur den Origin ohne Pfad, Zugangsdaten oder Query angeben.");
+      }
+      return url.origin;
+    }
+
+    async function readResponse(response) {
+      if (response.status === 204) return null;
+      const text = await response.text();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return text;
+      }
+    }
+
+    function errorMessage(data, fallback) {
+      if (typeof data === "string" && data.trim()) return data.slice(0, 500);
+      if (data && typeof data === "object") {
+        for (const key of ["message", "error_description", "error", "title"]) {
+          if (typeof data[key] === "string" && data[key].trim()) return data[key].slice(0, 500);
+        }
+      }
+      return fallback;
+    }
+
+    async function refreshIfNeeded() {
+      if (!state.token || !state.refreshToken || !state.expiresAt ||
+          Date.now() < state.expiresAt - 120000) return;
+
+      const currentToken = state.token;
+      if (!refreshInFlight) {
+        refreshInFlight = (async () => {
+          const response = await fetch(`${apiRoot()}/Token/RefreshToken`, {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+              token: currentToken,
+              refreshToken: state.refreshToken,
+              appId: state.appId
+            }),
+            credentials: "omit",
+            cache: "no-store"
+          });
+          const data = await readResponse(response);
+          if (!response.ok || !data || !data.token) {
+            clearSession();
+            throw new Error(errorMessage(data, `Token-Erneuerung fehlgeschlagen (HTTP ${response.status}). Bitte erneut anmelden.`));
+          }
+          if (state.token !== currentToken) throw new Error("Die Sitzung wurde während der Token-Erneuerung beendet.");
+          state.token = data.token;
+          state.refreshToken = data.refreshToken || state.refreshToken;
+          state.expiresAt = data.expireIn ? Date.now() + Number(data.expireIn) * 1000 : 0;
+        })();
+      }
+      const pendingRefresh = refreshInFlight;
+      try {
+        await pendingRefresh;
+      } finally {
+        if (refreshInFlight === pendingRefresh) refreshInFlight = null;
+      }
+    }
+
+    async function api(path, options = {}) {
+      await refreshIfNeeded();
+      const headers = new Headers(options.headers || {});
+      headers.set("Accept", "application/json");
+      headers.set("Authorization", `Bearer ${state.token}`);
+      if (options.body && !(options.body instanceof FormData)) {
+        headers.set("Content-Type", "application/json");
+      }
+
+      const response = await fetch(`${apiRoot()}${path}`, {
+        ...options,
+        headers,
+        credentials: "omit",
+        cache: "no-store"
+      });
+      const data = await readResponse(response);
+      if (!response.ok) {
+        if (response.status === 401) clearSession();
+        throw new Error(errorMessage(data, `API-Anfrage fehlgeschlagen (HTTP ${response.status}).`));
+      }
+      return data;
+    }
+
+    function clearSession() {
+      state.token = null;
+      state.refreshToken = null;
+      state.expiresAt = 0;
+      state.school = "";
+      state.chatId = "";
+      state.profile = null;
+      state.chats = [];
+      state.recipients.clear();
+      state.calendarItems = [];
+      state.hipStudents = [];
+      byId("client").classList.add("hidden");
+      byId("logout-button").disabled = true;
+      byId("profile").textContent = "";
+      byId("chat-list").replaceChildren();
+      byId("messages").replaceChildren();
+      byId("chats-raw").textContent = "";
+      byId("messages-raw").textContent = "";
+      byId("calendar-list").replaceChildren();
+      byId("calendar-detail").textContent = "";
+      byId("calendar-raw").textContent = "";
+      byId("hip-student").replaceChildren();
+      byId("hip-student").disabled = true;
+      byId("hip-content").replaceChildren();
+      byId("hip-raw").textContent = "";
+      byId("recipients").replaceChildren();
+      byId("refresh-messages").disabled = true;
+      byId("message").disabled = true;
+      byId("send-button").disabled = true;
+    }
+
+    function arrayFrom(data, keys = []) {
+      if (Array.isArray(data)) return data;
+      if (!data || typeof data !== "object") return [];
+      for (const key of keys) {
+        if (Array.isArray(data[key])) return data[key];
+      }
+      return [];
+    }
+
+    function valueOf(object, keys) {
+      if (!object || typeof object !== "object") return "";
+      for (const key of keys) {
+        const value = object[key];
+        if (typeof value === "string" || typeof value === "number") {
+          if (String(value).trim()) return String(value);
+        }
+      }
+      return "";
+    }
+
+    async function login() {
+      clearSession();
+      state.origin = normalizeOrigin(byId("origin").value.trim());
+      state.appId = byId("app-id").value.trim();
+      if (!state.appId) throw new Error("Bitte gib die für deine Instanz vorgesehene App-ID an.");
+      const userName = byId("username").value.trim();
+      const password = byId("password").value;
+      if (!userName || !password) throw new Error("Benutzername und Passwort sind erforderlich.");
+
+      showStatus("Anmeldung läuft …");
+      const response = await fetch(`${apiRoot()}/Token/CreateToken`, {
+        method: "POST",
+        headers: { "Accept": "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName,
+          password,
+          twoFactorCode: byId("two-factor").value.trim() || null,
+          appId: state.appId
+        }),
+        credentials: "omit",
+        cache: "no-store"
+      });
+      const data = await readResponse(response);
+      if (!response.ok || !data || !data.token) {
+        if (data && data.twoFactorNeeded) {
+          byId("two-factor").focus();
+          throw new Error("Für dieses Konto wird ein Zwei-Faktor-Code benötigt. Trag ihn ein und melde dich erneut an.");
+        }
+        throw new Error(errorMessage(data, `Anmeldung fehlgeschlagen (HTTP ${response.status}).`));
+      }
+
+      state.token = data.token;
+      state.refreshToken = data.refreshToken || null;
+      state.expiresAt = data.expireIn ? Date.now() + Number(data.expireIn) * 1000 : 0;
+      byId("password").value = "";
+      byId("two-factor").value = "";
+      byId("logout-button").disabled = false;
+      await loadProfile();
+      showStatus("Angemeldet. Wähle eine Schule und lade die Chatliste.", "success");
+    }
+
+    async function loadProfile() {
+      const profile = await api("/App/App/Profile");
+      state.profile = profile;
+      const schools = arrayFrom(profile && profile.schools);
+      byId("profile").textContent = valueOf(profile, ["displayName", "userName"]) || "Profil geladen";
+      const select = byId("school");
+      select.replaceChildren();
+      for (const school of schools) {
+        if (!school || typeof school.tag !== "string" || !school.tag) continue;
+        const option = document.createElement("option");
+        option.value = school.tag;
+        option.textContent = `${school.name || school.tag} (${school.tag})`;
+        select.append(option);
+      }
+      if (!select.options.length) {
+        clearSession();
+        throw new Error("Das Profil enthält keine verwendbare Schule (erwartet: schools[].tag).");
+      }
+      select.disabled = false;
+      byId("client").classList.remove("hidden");
+      select.value = select.options[0].value;
+      state.school = select.value;
+      await loadChats();
+    }
+
+    function schoolRoute(suffix) {
+      if (!state.school) throw new Error("Wähle zuerst eine Schule.");
+      return `/App/${encodeURIComponent(state.school)}/${suffix}`;
+    }
+
+    async function loadChats() {
+      if (!state.token) throw new Error("Bitte melde dich zuerst an.");
+      showStatus("Chatliste wird geladen …");
+      const data = await api(schoolRoute("Messenger/Index"));
+      state.chats = arrayFrom(data, ["items", "chats", "data"]);
+      byId("chats-raw").textContent = JSON.stringify(data, null, 2);
+      const list = byId("chat-list");
+      list.replaceChildren();
+
+      state.chats.forEach((chat, index) => {
+        const id = valueOf(chat, ["id", "chatId", "Id", "ChatId"]);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chat-button";
+        button.dataset.chatId = id;
+        button.setAttribute("aria-current", String(Boolean(id && id === state.chatId)));
+        const title = valueOf(chat, ["name", "title", "displayName", "chatName"]) || `Chat ${index + 1}`;
+        const description = valueOf(chat, ["lastMessage", "lastMessageText", "text", "content"]);
+        button.textContent = description ? `${title} — ${description}` : title;
+        button.disabled = !id;
+        if (id) button.addEventListener("click", () => selectChat(id, title));
+        list.append(button);
+      });
+
+      if (!state.chats.length) {
+        list.textContent = "Keine Chat-Einträge gefunden. Prüfe bei Bedarf die Rohdaten oder die Instanzberechtigungen.";
+      }
+      showStatus(`${state.chats.length} Chat-Einträge geladen.`, "success");
+    }
+
+    function collectRecipients(data, results = [], depth = 0) {
+      if (depth > 12 || data == null) return results;
+      if (Array.isArray(data)) {
+        data.forEach((item) => collectRecipients(item, results, depth + 1));
+        return results;
+      }
+      if (typeof data !== "object") return results;
+
+      const key = valueOf(data, ["key", "Key"]);
+      const text = valueOf(data, ["text", "Text"]);
+      if (key && text) {
+        results.push({
+          key,
+          text,
+          information: valueOf(data, ["information", "Information"]),
+          source: valueOf(data, ["source", "Source"])
+        });
+        return results;
+      }
+      Object.values(data).forEach((value) => collectRecipients(value, results, depth + 1));
+      return results;
+    }
+
+    function renderRecipients() {
+      const select = byId("recipients");
+      const selectedKeys = new Set(Array.from(select.selectedOptions, (option) => option.value));
+      select.replaceChildren();
+      for (const recipient of state.recipients.values()) {
+        const option = document.createElement("option");
+        option.value = recipient.key;
+        option.textContent = [recipient.text, recipient.information].filter(Boolean).join(" — ");
+        option.selected = selectedKeys.has(recipient.key);
+        select.append(option);
+      }
+    }
+
+    async function loadRecipients(searchTerm = "") {
+      const path = searchTerm
+        ? schoolRoute(`School/SearchRecipients/${encodeURIComponent(searchTerm)}`)
+        : schoolRoute("School/Recipients");
+      const data = await api(path);
+      const recipients = collectRecipients(data);
+      for (const recipient of recipients) state.recipients.set(recipient.key, recipient);
+      renderRecipients();
+      showStatus(`${recipients.length} Empfänger gefunden.`, "success");
+      if (!recipients.length) byId("recipients").textContent = "Keine Empfänger in der Antwort gefunden.";
+    }
+
+    async function createChat(event) {
+      event.preventDefault();
+      const recipients = Array.from(byId("recipients").selectedOptions, (option) => option.value);
+      if (!recipients.length) throw new Error("Wähle mindestens einen Empfänger aus den Serverergebnissen aus.");
+      const name = byId("chat-name").value.trim();
+      const created = await api(schoolRoute("Messenger/Chat/Create"), {
+        method: "POST",
+        body: JSON.stringify({
+          recipients,
+          authors: [],
+          name,
+          authorsLimited: false,
+          useExisting: byId("use-existing").checked,
+          replyToMessageId: null,
+          forwardedMessageId: null
+        })
+      });
+      const createdId = valueOf(created, ["id", "chatId", "Id", "ChatId"]);
+      await loadChats();
+      if (createdId) await selectChat(createdId, name || "Neuer Chat");
+      showStatus("Chat erstellt.", "success");
+    }
+
+    async function loadCalendar() {
+      const data = await api(schoolRoute("Calendar/Index"));
+      state.calendarItems = arrayFrom(data, ["items", "calendars", "data"]);
+      byId("calendar-raw").textContent = JSON.stringify(data, null, 2);
+      const list = byId("calendar-list");
+      list.replaceChildren();
+      state.calendarItems.forEach((item, index) => {
+        const id = valueOf(item, ["id", "calendarId", "Id", "CalendarId"]);
+        const title = valueOf(item, ["name", "title", "subject", "displayName"]) || `Kalendereintrag ${index + 1}`;
+        const date = valueOf(item, ["date", "startDate", "from", "start", "time"]);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chat-button";
+        button.textContent = date ? `${date} — ${title}` : title;
+        button.disabled = !id;
+        if (id) button.addEventListener("click", () => run(() => loadCalendarDetail(id, title)));
+        list.append(button);
+      });
+      if (!state.calendarItems.length) list.textContent = "Keine Kalendereinträge gefunden.";
+      showStatus(`${state.calendarItems.length} Kalendereinträge geladen.`, "success");
+    }
+
+    async function loadCalendarDetail(id, title) {
+      const detail = await api(schoolRoute(`Calendar/Detail/${encodeURIComponent(id)}`));
+      byId("calendar-heading").textContent = title;
+      byId("calendar-detail").textContent = JSON.stringify(detail, null, 2);
+      showStatus("Kalenderdetails geladen.", "success");
+    }
+
+    async function loadHipStudents() {
+      const data = await api(schoolRoute("HIP/Index"));
+      state.hipStudents = arrayFrom(data, ["students"]);
+      byId("hip-raw").textContent = JSON.stringify(data, null, 2);
+      const select = byId("hip-student");
+      select.replaceChildren();
+      state.hipStudents.forEach((student, index) => {
+        const id = valueOf(student, ["id", "studentId", "Id", "StudentId"]);
+        if (!id) return;
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = valueOf(student, ["displayName", "name", "DisplayName"]) || `Schüler ${index + 1}`;
+        select.append(option);
+      });
+      select.disabled = !select.options.length;
+      if (select.options.length && select.value) await loadHipStudent(select.value);
+      if (!state.hipStudents.length) showStatus("Keine Schüler für das Notenbuch gefunden.", "success");
+    }
+
+    const safeHipTags = new Set([
+      "a", "b", "blockquote", "br", "caption", "div", "em", "h1", "h2", "h3",
+      "h4", "h5", "h6", "hr", "i", "li", "ol", "p", "small", "span", "strong",
+      "sub", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "u", "ul"
+    ]);
+    const blockedHipTags = new Set(["iframe", "object", "script", "style", "svg", "math"]);
+
+    function copySafeHipNode(parent, sourceNode) {
+      if (sourceNode.nodeType === Node.TEXT_NODE) {
+        parent.append(document.createTextNode(sourceNode.nodeValue || ""));
+        return;
+      }
+      if (sourceNode.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = sourceNode.tagName.toLowerCase();
+      if (blockedHipTags.has(tag)) return;
+      const target = safeHipTags.has(tag) ? document.createElement(tag) : parent;
+      if (target !== parent) parent.append(target);
+      for (const child of sourceNode.childNodes) copySafeHipNode(target, child);
+    }
+
+    function displayHipContent(data) {
+      const container = byId("hip-content");
+      container.replaceChildren();
+      const html = valueOf(data, ["content", "contentCompact"]);
+      if (!html) {
+        container.textContent = "Für diesen Schüler ist kein Notenbuch-Inhalt verfügbar.";
+        return;
+      }
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      for (const node of parsed.body.childNodes) copySafeHipNode(container, node);
+    }
+
+    async function loadHipStudent(studentId) {
+      if (!studentId) return;
+      const data = await api(schoolRoute(`HIP/Student/${encodeURIComponent(studentId)}`));
+      byId("hip-raw").textContent = JSON.stringify(data, null, 2);
+      displayHipContent(data);
+      showStatus("Notenbuch-Inhalt geladen.", "success");
+    }
+
+    async function selectChat(chatId, title) {
+      state.chatId = chatId;
+      byId("conversation-heading").textContent = title;
+      byId("refresh-messages").disabled = false;
+      byId("message").disabled = false;
+      byId("send-button").disabled = false;
+      await loadMessages();
+      Array.from(byId("chat-list").children).forEach((button) => {
+        button.setAttribute("aria-current", String(button.dataset.chatId === chatId));
+      });
+    }
+
+    async function loadMessages() {
+      if (!state.chatId) return;
+      showStatus("Nachrichten werden geladen …");
+      const chatPath = schoolRoute(`Messenger/Chat/${encodeURIComponent(state.chatId)}`);
+      const messagesPath = `${chatPath}/Items?page=1&pagesize=25`;
+      const chat = await api(chatPath);
+      const data = await api(messagesPath);
+      const messages = arrayFrom(data, ["items", "messages", "data"]);
+      byId("messages-raw").textContent = JSON.stringify(data, null, 2);
+      const container = byId("messages");
+      container.replaceChildren();
+      for (const item of messages) {
+        const article = document.createElement("article");
+        article.className = "message";
+        const author = document.createElement("strong");
+        author.textContent = valueOf(item, ["authorDisplayName", "senderDisplayName", "displayName", "userDisplayName", "creatorUserDisplayName"]) || "Nachricht";
+        article.append(author);
+        const time = valueOf(item, ["created", "createdAt", "date", "sent"]);
+        if (time) {
+          const meta = document.createElement("small");
+          meta.textContent = ` · ${time}`;
+          author.append(meta);
+        }
+        const content = valueOf(item, ["content", "text", "message"]);
+        const body = document.createElement("p");
+        body.textContent = content || JSON.stringify(item);
+        article.append(body);
+        container.append(article);
+      }
+      if (!messages.length) container.textContent = "Keine Nachrichten in dieser Seite.";
+      const chatName = valueOf(chat, ["name", "title", "displayName"]);
+      if (chatName) byId("conversation-heading").textContent = chatName;
+      showStatus(`${messages.length} Nachrichten geladen.`, "success");
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+      if (!state.chatId) throw new Error("Wähle zuerst einen Chat.");
+      const content = byId("message").value.trim();
+      if (!content) throw new Error("Die Nachricht darf nicht leer sein.");
+      if (!window.crypto || !crypto.randomUUID) {
+        throw new Error("Dieser Browser unterstützt keine sichere UUID-Erzeugung; bitte einen aktuellen Browser verwenden.");
+      }
+      const id = crypto.randomUUID();
+      const tempId = crypto.randomUUID();
+      byId("send-button").disabled = true;
+      showStatus("Nachricht wird gesendet …");
+      try {
+        await api(schoolRoute(`Messenger/Chat/${encodeURIComponent(state.chatId)}/Create`), {
+          method: "POST",
+          body: JSON.stringify({ id, content, tempId, replyToMessageId: null, forwardedMessageId: null })
+        });
+        byId("message").value = "";
+        await loadMessages();
+        showStatus("Nachricht gesendet.", "success");
+      } finally {
+        byId("send-button").disabled = false;
+      }
+    }
+
+    async function run(action) {
+      try {
+        await action();
+      } catch (error) {
+        const message = error instanceof TypeError
+          ? `${error.message} Prüfe die Netzwerkverbindung und ob die Instanz Browserzugriffe per CORS erlaubt.`
+          : error instanceof Error ? error.message : "Unbekannter Fehler.";
+        showStatus(message, "error");
+      }
+    }
+
+    byId("login-button").addEventListener("click", () => run(login));
+    byId("logout-button").addEventListener("click", () => {
+      clearSession();
+      showStatus("Abgemeldet. Das Token wurde aus dem Arbeitsspeicher entfernt.", "success");
+    });
+    byId("school").addEventListener("change", () => run(async () => {
+      state.school = byId("school").value;
+      state.chatId = "";
+      state.recipients.clear();
+      state.calendarItems = [];
+      state.hipStudents = [];
+      byId("messages").replaceChildren();
+      byId("messages-raw").textContent = "";
+      byId("recipients").replaceChildren();
+      byId("calendar-list").replaceChildren();
+      byId("calendar-heading").textContent = "";
+      byId("calendar-detail").textContent = "";
+      byId("calendar-raw").textContent = "";
+      byId("hip-student").replaceChildren();
+      byId("hip-student").disabled = true;
+      byId("hip-content").replaceChildren();
+      byId("hip-raw").textContent = "";
+      byId("conversation-heading").textContent = "Nachrichten";
+      byId("refresh-messages").disabled = true;
+      byId("message").disabled = true;
+      byId("send-button").disabled = true;
+      await loadChats();
+    }));
+    byId("load-chats").addEventListener("click", () => run(loadChats));
+    byId("load-recipients").addEventListener("click", () => run(() => loadRecipients()));
+    byId("search-recipients").addEventListener("click", () => run(() => {
+      const term = byId("recipient-search").value.trim();
+      if (!term) throw new Error("Gib einen Suchbegriff für die Empfängersuche ein.");
+      return loadRecipients(term);
+    }));
+    byId("recipient-search").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        byId("search-recipients").click();
+      }
+    });
+    byId("create-chat-form").addEventListener("submit", (event) => run(() => createChat(event)));
+    byId("refresh-messages").addEventListener("click", () => run(loadMessages));
+    byId("send-form").addEventListener("submit", (event) => run(() => sendMessage(event)));
+    byId("load-calendar").addEventListener("click", () => run(loadCalendar));
+    byId("load-hip").addEventListener("click", () => run(loadHipStudents));
+    byId("hip-student").addEventListener("change", () => run(() => loadHipStudent(byId("hip-student").value)));
+  </script>
+</body>
+</html>
