@@ -16,7 +16,8 @@ Dokumentation der aus dem MeineSchule.digital-Android-Client
 - [Realtime und Push](docs/realtime-and-push.md)
 - [Datenmodelle](docs/data-models.md)
 - [Sicherheitsbetrachtung](docs/security.md)
-- [Einzeldatei-HTML-Beispielclient](examples/index.html)
+- [Beispielclient](https://msd.de.cool/)
+  -  [Source Code vom Beispielclient](/examples/msd-client-src.tgz)
 - [Gesamte Dokumentation als Einzeldate in Englisch (zb für AI Agents)](MSD-API-SPEC.md)
 
 ## Umfang
