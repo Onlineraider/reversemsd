@@ -18,7 +18,7 @@ Dokumentation der aus dem MeineSchule.digital-Android-Client
 - [Sicherheitsbetrachtung](docs/security.md)
 - [Beispielclient](https://msd.de.cool/)
   -  [Source Code vom Beispielclient](/examples/msd-client-src.tgz)
-- [Gesamte Dokumentation als Einzeldatei in Englisch (zb für AI Agents)](MSD-API-SPEC.md)
+- [Gesamte Dokumentation als Einzeldatei in Englisch (zB. für AI Agents)](MSD-API-SPEC.md)
 
 ## Umfang
 
