@@ -27,11 +27,15 @@ Schulwechsel lädt sie den Schulstatus erneut.
 | GET | `/account/forgotpassword` | Browserseite | Seite zur Passwortwiederherstellung. |
 | GET | `/account/delete` | Browserseite | Kontolöschungsseite. |
 | GET | `/Account/Login?token={oneTimeToken}&inapp=1&returnurl=/{schoolTag}/{path}` | Browserseite | Web-UI-Brücke, u. a. für Profilbearbeitung, Stundenplan, Medien-/Kalenderpflege und Schüler-Eigenschaften. |
+| GET | `/{school}/explorer/studentproperties/details/{studentId}` | Browserseite über die One-Time-Token-Brücke | Editor der Eigenschaften des ausgewählten Schülers; die native App öffnet ihn über `StudentActionAsync("PROPERTIES")`. |
+| GET | `/{school}/account/profile` | Browserseite über die One-Time-Token-Brücke | Separater Editor für das Benutzerkonto-Profil. |
 
 Für Web-UI-Routen fordert die App zuerst ein One-Time-Token an. Die
 Spezifikation belegt keinen JSON-Schreibendpunkt für die genannten
-Bearbeitungsseiten. Das Token ist sensibel und sollte unmittelbar vor dem
-Öffnen der Seite abgerufen und nicht protokolliert werden.
+Bearbeitungsseiten. Insbesondere belegt der Schüler-Eigenschaften-Editor
+keinen JSON-Endpunkt zum Ändern des Kontonamens. Das Token ist sensibel und
+sollte unmittelbar vor dem Öffnen der Seite abgerufen und nicht protokolliert
+werden.
 
 ## Sicherheits- und Implementierungshinweise
 
