@@ -23,17 +23,24 @@ verweist die jeweilige Modulseite auf die bekannte Antwortklasse.
 | `Link` | `title`, `url`, `appMode`; Werte für `appMode`: `Disabled`, `OpenExternal`, `OpenInternal`. |
 | `Student` | `id`, `displayName`, `studentClass`. |
 | `StudentInfo` | `id`, `displayName`, `studentClass`, `userId`, `userDisplayName`, `parents`, `partners`, `studentClassInfo`, `studentGroupInfo`, `subjectInfo`, `studentProperties[]`, `hasHIP`. |
-| `StudentInfoDetail` | Kann `displayName` und `persons[]` enthalten. |
+| `StudentInfoDetail` | Kann `displayName` und `persons[]` enthalten. Im Fachkontext ist `displayName` die Fachbezeichnung und `persons[]` enthält die zugeordneten Lehrkräfte. |
 | `StudentInfoPerson` | `id`, `displayName`, `type`, `userId`, `userDisplayName`. |
+| `studentProperties[]` | `name`, `type`, `value`, `mediaExtension`, `mediaSize`, `mediaFileName`, `modified`, `canEdit`. |
 | `User` | In der Antwort von `/App/App/Users`: `id`, `displayname`, `hasImage`. |
 | `UserInfo` | `id`, `relations[]`; zusätzliche Relations-Strings. |
 | `RecipientIndexData.KeyText` | `key`, `text`, `information`, `source`. |
 | `SchoolState` | `unreadChatItems[]`, `notConfirmedCalenderItems[]`, `notConfirmedMediaItems[]`, `unreadChatMessageCount`; `newMessages[]` ist veraltet. |
 
-`subjectInfo.persons` ist im Client die Quelle für angezeigte Fachlehrkräfte.
-Die Empfänger-Key-Formate sind in [Schule und Empfänger](school-and-recipients.md)
-beschrieben. IDs und Personendaten nur entsprechend der Serverantwort für
-den authentifizierten Benutzer nutzen.
+Die native Oberfläche bindet die Fachlehrkräfte an
+`subjectInfo.details[]`: Jeder Detail-Eintrag bildet ein Fach und dessen
+`persons[]` ab. Eine flache Liste `subjectInfo.persons` ist dafür nicht
+maßgeblich und kann fehlen oder leer sein. Die Eigenschaften eines Schülers
+werden im Client angezeigt; für ihre Bearbeitung ist der Web-Editor unter
+`/{school}/explorer/studentproperties/details/{studentId}` belegt, nicht ein
+mobiler JSON-Schreibendpunkt. Die Empfänger-Key-Formate sind in
+[Schule und Empfänger](school-and-recipients.md) beschrieben. IDs und
+Personendaten nur entsprechend der Serverantwort für den authentifizierten
+Benutzer nutzen.
 
 ## Messenger
 
