@@ -17,6 +17,7 @@ Dokumentation der aus dem MeineSchule.digital-Android-Client
 - [Datenmodelle](docs/data-models.md)
 - [Sicherheitsbetrachtung](docs/security.md)
 - [Einzeldatei-HTML-Beispielclient](examples/index.html)
+- [Gesamte Dokumentation als Einzeldate in Englisch (zb für AI Agents)](MSD-API-SPEC.md)
 
 ## Umfang
 
