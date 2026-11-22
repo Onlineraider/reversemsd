@@ -60,7 +60,7 @@ independently from the mobile app.
 | POST | `/account/login` | form fields `UserName`, `Password`, `RememberMe=false`, `__RequestVerificationToken` | authenticated portal session cookie on success. Detect a returned password form as failed login. |
 | GET | `/{schoolSlug}/hip` | authenticated portal cookie | rendered Home.InfoPoint HTML. |
 | GET | `/{schoolSlug}/schedule` | authenticated portal cookie | timetable page; selected student is an option in `#Selection` with value `s:{studentId}`. |
-| GET | `/{schoolSlug}/schedule?handler=Schedule&date={YYYY-MM-DD}&cog=&t=&s={studentId}&view=` | authenticated portal cookie | JSON for the timetable week containing `date`. |
+| GET | `/{schoolSlug}/schedule?handler=Schedule&date={YYYY-MM-DD}&cog=&t=&s={studentId}&view=` | authenticated portal cookie | JSON for the timetable week containing `date`. `cog` is a class/group **name**; empty `view` returns the substitution overview. See below. |
 
 Portal login is protected by an antiforgery token and relies on cookies; it is
 not interchangeable with sending a mobile bearer JWT to these routes. Preserve
@@ -87,12 +87,66 @@ lesson is client logic and must be labelled as such.
 
 ### Timetable JSON structure
 
-The reference client reads `schedule.days[]`. For each day, `d` is an ISO date,
-`l` is a list of lesson slots, and every slot may contain `e[]` entries. An
-entry uses `st` for the subject name and optional `cancelled: true`. The lesson
-period is the zero-based slot index in the returned `l` array. Do not assume
-that this index is the school's human-visible lesson number without checking
-the page UI.
+Confirmed against live responses (debug logs of a native client). The handler returns:
+
+```json
+{
+  "startTimes": ["08:00:00", "..."],          // lesson start times; no end times (client assumes +45 min)
+  "infos": [{"date": "2026-11-19T00:00:00", "informationPublic": "Präsenz: Lie", "informationTeachers": null, "isActive": true}],
+  "schedule": {"days": [{"d": "2026-11-19T00:00:00", "l": [ /* one slot per lesson, zero-based */ ]}]},
+  "replacements": [ /* substitution rows, see below */ ],
+  "classesOrGroups": [ ... ], "teachers": [ ... ]   // selector data (names), shape varies
+}
+```
+
+A slot in `l` is an array of entries or an object `{ "s": [], "e": [entries] }`. Entry fields:
+
+| Field | Meaning |
+|---|---|
+| `st` | subject short name |
+| `ct` | class(es) text |
+| `gt` | group text |
+| `tt` | teacher short name(s) |
+| `rm` | room |
+| `txt` | free text |
+| `rix` | index into the response's `replacements[]`; `-1` = regular lesson |
+| `cancelled` | `true` for cancelled lessons |
+| `sc`, `tc` | internal ids/codes, not for display |
+
+Do not assume the slot index equals the human-visible lesson number.
+
+#### Query parameters of `handler=Schedule`
+
+* `date` selects the week.
+* `s={studentId}` selects a student's plan.
+* `cog={name}` selects a class or group plan. **The value is the class/group
+  *name* (e.g. `10c`, `En1_10_8b`), not an id.** With an id the server answers
+  `schedule: null`.
+* `t={teacher}` selects a teacher's plan.
+* `view=` (empty) returns the substitution overview (`replacements` for the
+  whole school, without a personal `schedule`). The portal's "Vertretungen"
+  selector entry corresponds to this empty selection.
+
+#### `replacements[]` row
+
+| Field | Meaning |
+|---|---|
+| `id`, `foreignId`, `scheduleForeignId`, `scheduleId` | identifiers |
+| `classesOrGroups` / `newClassesOrGroups` | affected class/group text (old / new) |
+| `studentClassIds[]`, `studentGroupIds[]` (+ `new…`) | ids of the affected classes/groups |
+| `date`, `lessonIndex`, `lessons` | original day, first lesson (1-based) and number of consecutive lessons (`null` = 1) |
+| `newDate`, `newLessonIndex` | target day/lesson when the lesson is moved (`null` = unchanged) |
+| `subject`/`subjectId` → `newSubject`/`newSubjectId` | subject before / after |
+| `teachers`/`teacherIds[]` → `newTeachers`/`newTeacherIds[]` | teacher text before / after (e.g. `"Löc"` → `"Löc, Sra"`) |
+| `rooms`/`roomId` → `newRooms`/`newRoomId` | room before / after |
+| `reason` (number), `reasonText` | e.g. `1` = `Änd.`, `3` = `Verl.` (moved); other values such as "Entf." (cancelled) are shown verbatim |
+| `message`, `messageTeacher`, `text` | free texts (`message` is visible to students) |
+
+Rendering rule used by the portal: a moved lesson is shown as
+`3-4 (19.11.2026) > 6-7 (23.11.2026)`; changed fields as `old > new`. A row
+without any `new…` value and without a move is a cancellation. A lesson entry
+with `rix >= 0` belongs to `replacements[rix]` of the same response, which gives
+the old values for highlighting changes in the regular plan.
 
 ## School, people, links, and state
 

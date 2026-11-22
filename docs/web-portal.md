@@ -38,13 +38,18 @@ enthaltene Frist und kein separates Serverfeld. Eine anderweitige Fristableitung
 aus der nächsten passenden, nicht abgesagten Unterrichtsstunde ist Clientlogik
 und muss als solche gekennzeichnet werden.
 
-## Stundenplan-JSON
+## Stundenplan-JSON (bestätigt)
 
-Der Referenzclient liest `schedule.days[]`. Pro Tag ist `d` ein ISO-Datum und
-`l` eine Liste von Unterrichts-Slots. Jeder Slot kann `e[]` enthalten. Ein
-Eintrag verwendet `st` für den Fachnamen und optional `cancelled: true`.
-Die Unterrichtsperiode ist der nullbasierte Index des Slots in `l`; daraus
-folgt nicht zwingend die im Stundenplan sichtbare Unterrichtsnummer.
+Die Struktur wurde an echten Antworten bestätigt. Details (Felder `startTimes`,
+`infos`, `schedule.days[].l[]`, Eintragsfelder `st/ct/gt/tt/rm/txt/rix/cancelled`,
+`replacements[]`-Zeilen) stehen im englischen Abschnitt „Timetable JSON structure“ in
+[MSD-API-SPEC.md](../MSD-API-SPEC.md). Kurzfassung:
+
+* `cog` erwartet den **Namen** der Klasse/Gruppe (`10c`, `En1_10_8b`), keine ID – mit ID liefert der Server `schedule: null`.
+* `view=` leer liefert die Vertretungsübersicht (`replacements`, `infos`).
+* Ein Eintrag mit `rix >= 0` verweist auf `replacements[rix]` derselben Antwort (alt → neu für Fach, Lehrer, Raum; Verlegung über `newDate`/`newLessonIndex`).
+* `startTimes` enthält nur Startzeiten (`"08:00:00"`), keine Endzeiten.
+* `infos[].informationPublic` sind Tageshinweise wie „Präsenz: Lie“.
 
 ## Sicherer Umgang
 
